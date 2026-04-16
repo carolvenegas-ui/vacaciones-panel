@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vacaciones · Panel de Control</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ─────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F5F0;
+  --surface:#FFFFFF;
+  --surface2:#F0EDE8;
+  --border:#E2DED8;
+  --border2:#CCC8C0;
+  --text:#1A1916;
+  --muted:#7A756D;
+  --hint:#B0AB9F;
+  --accent:#1C4E80;
+  --accent-light:#E6EFF8;
+  --accent-mid:#3A78BE;
+  --green:#2D6A2D;
+  --green-bg:#EAF3EA;
+  --amber:#7A4E00;
+  --amber-bg:#FDF3DC;
+  --red:#8B2020;
+  --red-bg:#FAEAEA;
+  --radius:10px;
+  --radius-lg:16px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08);
+  font-family:'DM Sans',sans-serif;
+  font-size:15px;
+  color:var(--text);
+  background:var(--bg);
+}
+
+/* ── LAYOUT ──────────────────────────────────────────────── */
+.app{min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-.01em}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:16px;height:16px;fill:none;stroke:white;stroke-width:2;stroke-linecap:round}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.mode-pill{display:flex;background:var(--surface2);border-radius:50px;padding:3px;gap:2px}
+.mode-btn{padding:5px 14px;border-radius:50px;font-size:13px;font-weight:500;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s}
+.mode-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.agent-sel{font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);cursor:pointer;outline:none}
+
+.main{flex:1;padding:2rem;max-width:1200px;margin:0 auto;width:100%}
+.grid{display:grid;grid-template-columns:1fr 320px;gap:1.5rem}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.main{padding:1rem}}
+
+/* ── CARDS ───────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;box-shadow:var(--shadow)}
+.card+.card{margin-top:1rem}
+.card-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin-bottom:1rem}
+
+/* ── STATS ───────────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;box-shadow:var(--shadow)}
+.stat-val{font-size:32px;font-weight:300;letter-spacing:-.03em;color:var(--text);line-height:1}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* ── CALENDAR ─────────────────────────────────────────────── */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.cal-nav-btn{width:34px;height:34px;border:1px solid var(--border);border-radius:var(--radius);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s;font-size:18px;line-height:1}
+.cal-nav-btn:hover{background:var(--surface2);color:var(--text)}
+.cal-title{font-size:17px;font-weight:500;letter-spacing:-.02em}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dow{font-size:11px;font-weight:600;color:var(--hint);text-align:center;padding:6px 0;letter-spacing:.05em}
+.day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;border:1px solid transparent;font-size:13px;font-weight:400;position:relative;transition:all .13s;min-height:36px;gap:2px}
+.day:hover:not(.empty):not(.past):not(.full){background:var(--accent-light);border-color:#C5D8EE}
+.day.empty,.day.past{cursor:default}
+.day.past{opacity:.3}
+.day.today .dn{background:var(--accent);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px}
+.day.full{cursor:not-allowed;background:#FFF5F5}
+.day.full .dn{color:var(--red)}
+.day.selected{background:var(--accent-light);border-color:var(--accent-mid)}
+.day.selected .dn{color:var(--accent);font-weight:600}
+.dot-row{display:flex;gap:2px;justify-content:center;flex-wrap:wrap;max-width:30px}
+.dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.full-x{font-size:9px;color:var(--red);font-weight:700;letter-spacing:.04em}
+
+/* ── LEGEND ──────────────────────────────────────────────── */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── FORM ────────────────────────────────────────────────── */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{font-size:12px;font-weight:500;color:var(--muted)}
+.chips-box{display:flex;flex-wrap:wrap;gap:5px;min-height:38px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2)}
+.chip{display:flex;align-items:center;gap:4px;background:var(--accent-light);color:var(--accent);font-size:12px;font-weight:500;padding:3px 8px;border-radius:6px}
+.chip button{background:none;border:none;cursor:pointer;color:var(--accent-mid);font-size:14px;line-height:1;padding:0;display:flex}
+.no-dates{font-size:12px;color:var(--hint);align-self:center}
+textarea,input,select{font-family:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);width:100%;outline:none;transition:border-color .15s}
+textarea:focus,input:focus,select:focus{border-color:var(--accent-mid)}
+textarea{resize:none}
+.btn{padding:10px 18px;border-radius:var(--radius);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--accent);color:white}
+.btn-primary:hover:not(:disabled){background:#163D6B}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
+.btn-sm{padding:5px 12px;font-size:12px;font-weight:500;border-radius:7px;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.btn-approve{background:var(--green-bg);color:var(--green);border:1px solid #B8DAB8}
+.btn-approve:hover{background:#D6EBD6}
+.btn-reject{background:var(--red-bg);color:var(--red);border:1px solid #F0BEBE}
+.btn-reject:hover{background:#F5D0D0}
+
+/* ── AGENTS LIST ─────────────────────────────────────────── */
+.agent-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:6px}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.agent-name{font-size:13px;font-weight:500;flex:1}
+.agent-sub{font-size:11px;color:var(--muted)}
+.badge{font-size:11px;padding:3px 9px;border-radius:6px;font-weight:500}
+.badge-vacation{background:var(--green-bg);color:var(--green)}
+.badge-available{background:var(--surface2);color:var(--muted)}
+
+/* ── REQUESTS ─────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
+.tab{padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:inherit;transition:all .15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.req-card{padding:14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;transition:border-color .15s}
+.req-card:hover{border-color:var(--border2)}
+.req-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.req-name{font-size:14px;font-weight:500}
+.badge-pending{background:var(--amber-bg);color:var(--amber)}
+.badge-approved{background:var(--green-bg);color:var(--green)}
+.badge-rejected{background:var(--red-bg);color:var(--red)}
+.req-dates{font-size:12px;color:var(--muted);margin-bottom:3px}
+.req-reason{font-size:12px;color:var(--hint);font-style:italic}
+.req-actions{display:flex;gap:6px;margin-top:8px}
+.empty-state{text-align:center;padding:2rem;color:var(--hint);font-size:13px}
+
+/* ── TOAST ───────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;background:#1A1916;color:#F7F5F0;padding:11px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;z-index:999;box-shadow:var(--shadow-md)}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── LOADING ─────────────────────────────────────────────── */
+.loading{display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--hint);font-size:13px;gap:8px}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.conn-banner{background:var(--amber-bg);border:1px solid #E8C97A;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--amber);margin-bottom:1rem;display:none}
+.conn-banner.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════╗ -->
+<!-- ║  CONFIGURACIÓN — EDITA ESTO     ║ -->
+<!-- ╚══════════════════════════════════╝ -->
+<script>
+const CONFIG = {
+  // Pega aquí la URL que te da Google Apps Script al hacer "Deploy > Web App"
+  API_URL: "https://script.google.com/macros/s/AKfycbxGeOyPPTv941brNFqbfu55RbhVfC_6_WYQ83h0ueW38qOsGF6Oqcr2pbxc5QGANKgx/exec",
+  // Máximo de agentes por día
+  MAX_PER_DAY: 2,
+  // Nombre del departamento
+  DEPT_NAME: "Control de Vacaciones",
+};
+</script>
+
+<div class="app">
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <span id="dept-name">Vacaciones</span>
+    </div>
+    <div class="topbar-right">
+      <select class="agent-sel" id="agent-select"></select>
+      <div class="mode-pill">
+        <button class="mode-btn active" id="btn-agent" onclick="setRole('agent')">Agente</button>
+        <button class="mode-btn" id="btn-manager" onclick="setRole('manager')">Gerente</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="conn-banner" id="conn-banner">
+      ⚠ No se pudo conectar con el servidor. Revisa la URL en CONFIG.API_URL y que el Web App esté publicado.
+    </div>
+    <div id="root"><div class="loading"><div class="spinner"></div> Cargando…</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+const S = {
+  role: "agent",
+  agents: [],
+  currentAgent: null,
+  approvedDays: {},
+  requests: [],
+  selectedDates: [],
+  reason: "",
+  year: new Date().getFullYear(),
+  month: new Date().getMonth(),
+  reqTab: "pending",
+  loading: false,
+};
+
+const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DOWS   = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"];
+
+// ── API ────────────────────────────────────────────────────
+async function api(params) {
+  const url = CONFIG.API_URL + "?" + new URLSearchParams(params);
+  const r   = await fetch(url, { redirect: "follow" });
+  return r.json();
+}
+async function apiPost(body) {
+  const r = await fetch(CONFIG.API_URL, {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json" },
+    redirect: "follow"
+  });
+  return r.json();
+}
+
+// ── INIT ───────────────────────────────────────────────────
+async function init() {
+  document.getElementById("dept-name").textContent = CONFIG.DEPT_NAME;
+
+  if (CONFIG.API_URL === "PEGA_AQUI_LA_URL_DEL_WEB_APP") {
+    document.getElementById("conn-banner").classList.add("show");
+    loadDemo(); return;
+  }
+
+  try {
+    const [agRes, dayRes] = await Promise.all([
+      api({ action: "getAgents" }),
+      api({ action: "getDays" })
+    ]);
+    S.agents      = agRes.agents  || [];
+    S.approvedDays = dayRes.approvedDays || {};
+    if (S.agents.length) S.currentAgent = S.agents[0].id;
+    buildAgentSelect();
+    await loadRequests();
+  } catch(e) {
+    document.getElementById("conn-banner").classList.add("show");
+    loadDemo();
+  }
+}
+
+function loadDemo() {
+  S.agents = [
+    {id:1,name:"Andrea Mora",initials:"AM",color:"#E6F1FB",text:"#185FA5",email:"andrea@empresa.com"},
+    {id:2,name:"Carlos Vega",initials:"CV",color:"#E1F5EE",text:"#0F6E56",email:"carlos@empresa.com"},
+    {id:3,name:"Diana López",initials:"DL",color:"#FAEEDA",text:"#854F0B",email:"diana@empresa.com"},
+    {id:4,name:"Esteban Ruiz",initials:"ER",color:"#FBEAF0",text:"#993556",email:"esteban@empresa.com"},
+    {id:5,name:"Fabiola Cruz",initials:"FC",color:"#EEEDFE",text:"#3C3489",email:"fabiola@empresa.com"},
+  ];
+  const y = S.year, m = String(S.month + 1).padStart(2,"0");
+  S.approvedDays = {
+    [`${y}-${m}-18`]:[2],
+    [`${y}-${m}-19`]:[2,5],
+    [`${y}-${m}-22`]:[3],
+    [`${y}-${m}-25`]:[3,4],
+    [`${y}-${m}-26`]:[3],
+  };
+  S.requests = [
+    {id:1,agentId:2,agentName:"Carlos Vega",dates:[`${y}-${m}-18`,`${y}-${m}-19`],reason:"Viaje familiar",status:"approved",timestamp:""},
+    {id:2,agentId:3,agentName:"Diana López",dates:[`${y}-${m}-22`,`${y}-${m}-25`,`${y}-${m}-26`],reason:"Vacaciones anuales",status:"pending",timestamp:""},
+    {id:3,agentId:4,agentName:"Esteban Ruiz",dates:[`${y}-${m}-25`],reason:"Cita médica",status:"pending",timestamp:""},
+    {id:4,agentId:5,agentName:"Fabiola Cruz",dates:[`${y}-${m}-19`],reason:"Trámites personales",status:"approved",timestamp:""},
+  ];
+  S.currentAgent = 1;
+  buildAgentSelect();
+  render();
+}
+
+async function loadRequests() {
+  const res = S.role === "manager"
+    ? await api({ action: "getAllRequests" })
+    : await api({ action: "getRequests", agentId: S.currentAgent });
+  S.requests = res.requests || [];
+  render();
+}
+
+// ── AGENT SELECT ───────────────────────────────────────────
+function buildAgentSelect() {
+  const sel = document.getElementById("agent-select");
+  sel.innerHTML = S.agents.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+  sel.value = S.currentAgent;
+  sel.onchange = () => { S.currentAgent = parseInt(sel.value); loadRequests(); };
+}
+
+function setRole(r) {
+  S.role = r;
+  document.getElementById("btn-agent").classList.toggle("active", r === "agent");
+  document.getElementById("btn-manager").classList.toggle("active", r === "manager");
+  document.getElementById("agent-select").style.display = r === "agent" ? "" : "none";
+  loadRequests();
+}
+
+// ── RENDER ─────────────────────────────────────────────────
+function render() {
+  document.getElementById("root").innerHTML =
+    S.role === "agent" ? buildAgentView() : buildManagerView();
+}
+
+// ── CALENDAR ──────────────────────────────────────────────
+function buildCalendar() {
+  const { year: y, month: m } = S;
+  const today     = new Date();
+  const firstDay  = new Date(y, m, 1).getDay();
+  const offset    = firstDay === 0 ? 6 : firstDay - 1;
+  const daysInMo  = new Date(y, m + 1, 0).getDate();
+
+  let html = `<div class="cal-nav">
+    <button class="cal-nav-btn" onclick="prevMonth()">‹</button>
+    <span class="cal-title">${MONTHS[m]} ${y}</span>
+    <button class="cal-nav-btn" onclick="nextMonth()">›</button>
+  </div>
+  <div class="cal-grid">
+    ${DOWS.map(d => `<div class="dow">${d}</div>`).join("")}`;
+
+  for (let i = 0; i < offset; i++) html += `<div class="day empty"></div>`;
+
+  for (let d = 1; d <= daysInMo; d++) {
+    const ds    = `${y}-${String(m + 1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const agents = S.approvedDays[ds] || [];
+    const full   = agents.length >= CONFIG.MAX_PER_DAY;
+    const todayD = today.getFullYear() === y && today.getMonth() === m && today.getDate() === d;
+    const past   = new Date(y, m, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const sel    = S.selectedDates.includes(ds);
+
+    let cls = "day";
+    if (past) cls += " past";
+    else if (full) cls += " full";
+    if (todayD) cls += " today";
+    if (sel) cls += " selected";
+
+    const dots = agents.map(aid => {
+      const ag = S.agents.find(a => a.id == aid);
+      return ag ? `<div class="dot" style="background:${ag.color};border:1px solid ${ag.text}"></div>` : "";
+    }).join("");
+
+    const title = agents.length
+      ? S.agents.filter(a => agents.includes(a.id)).map(a => a.name).join(", ")
+      : "Disponible";
+
+    const click = !past && !full ? `onclick="toggleDate('${ds}')"` : "";
+    html += `<div class="${cls}" title="${title}" ${click}>
+      <span class="dn">${d}</span>
+      <div class="dot-row">${dots}${full ? '<span class="full-x">LLENO</span>' : ""}</div>
+    </div>`;
+  }
+
+  html += `</div>`;
+
+  const legendItems = S.agents.map(a =>
+    `<div class="legend-item"><div class="ldot" style="background:${a.color};border:1px solid ${a.text}"></div>${a.name.split(" ")[0]}</div>`
+  ).join("");
+
+  html += `<div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:var(--accent-light);border:1px solid var(--accent-mid)"></div>Seleccionado</div>
+    <div class="legend-item"><div class="ldot" style="background:#FFF5F5;border:1px solid #F0BEBE"></div>Lleno (${CONFIG.MAX_PER_DAY}/${CONFIG.MAX_PER_DAY})</div>
+    ${legendItems}
+  </div>`;
+
+  return html;
+}
+
+// ── AGENT VIEW ─────────────────────────────────────────────
+function buildAgentView() {
+  const ag       = S.agents.find(a => a.id == S.currentAgent);
+  const myReqs   = S.requests.filter(r => r.agentId == S.currentAgent);
+  const chips    = S.selectedDates.map(d =>
+    `<div class="chip">${fmtDate(d)}<button onclick="removeDate('${d}')">×</button></div>`
+  ).join("");
+
+  const statusLabel = { pending:"Pendiente", approved:"Aprobado", rejected:"Rechazado" };
+
+  return `<div class="grid">
+    <div>
+      <div class="card">${buildCalendar()}</div>
+      ${myReqs.length ? `
+      <div class="card">
+        <div class="card-label">Mis solicitudes</div>
+        ${myReqs.map(r => `
+        <div class="req-card">
+          <div class="req-head">
+            <span class="req-dates">${r.dates.map(fmtDate).join(" · ")}</span>
+            <span class="badge badge-${r.status}">${statusLabel[r.status]||r.status}</span>
+          </div>
+          <div class="req-reason">"${r.reason}"</div>
+        </div>`).join("")}
+      </div>` : ""}
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-label">Solicitar días</div>
+        <div class="field">
+          <label>Días seleccionados</label>
+          <div class="chips-box">
+            ${chips || '<span class="no-dates">Selecciona días en el calendario</span>'}
+          </div>
+        </div>
+        <div class="field">
+          <label>Motivo</label>
+          <textarea rows="3" id="reason-input" placeholder="Ej. Vacaciones anuales, cita médica…" oninput="S.reason=this.value">${S.reason}</textarea>
+        </div>
+        <button class="btn btn-primary" id="submit-btn"
+          ${!S.selectedDates.length || !S.reason.trim() ? "disabled" : ""}
+          onclick="submitRequest()">
+          Enviar solicitud al gerente
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Equipo hoy</div>
+        ${buildAgentStatusToday()}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildAgentStatusToday() {
+  const today = new Date();
+  const ds    = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+  const onVac = S.approvedDays[ds] || [];
+  return S.agents.map(a => `
+    <div class="agent-row">
+      <div class="avatar" style="background:${a.color};color:${a.text}">${a.initials}</div>
+      <div style="flex:1"><div class="agent-name">${a.name}</div></div>
+      <span class="badge ${onVac.includes(a.id)||onVac.map(String).includes(String(a.id)) ? 'badge-vacation':'badge-available'}">
+        ${onVac.includes(a.id)||onVac.map(String).includes(String(a.id)) ? 'Vacaciones':'Disponible'}
+      </span>
+    </div>`).join("");
+}
+
+// ── MANAGER VIEW ───────────────────────────────────────────
+function buildManagerView() {
+  const all      = S.requests;
+  const pending  = all.filter(r => r.status === "pending");
+  const approved = all.filter(r => r.status === "approved");
+  const rejected = all.filter(r => r.status === "rejected");
+  const list     = S.reqTab === "pending" ? pending : S.reqTab === "approved" ? approved : rejected;
+  const totalD   = Object.values(S.approvedDays).reduce((s,a) => s + a.length, 0);
+
+  const statusLabel = { pending:"Pendiente", approved:"Aprobado", rejected:"Rechazado" };
+
+  return `
+  <div class="stats">
+    <div class="stat"><div class="stat-val">${pending.length}</div><div class="stat-lbl">Solicitudes pendientes</div></div>
+    <div class="stat"><div class="stat-val">${approved.length}</div><div class="stat-lbl">Solicitudes aprobadas</div></div>
+    <div class="stat"><div class="stat-val">${totalD}</div><div class="stat-lbl">Días activos en equipo</div></div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-label">Solicitudes</div>
+      <div class="tabs">
+        <button class="tab ${S.reqTab==='pending'?'active':''}" onclick="S.reqTab='pending';render()">Pendientes (${pending.length})</button>
+        <button class="tab ${S.reqTab==='approved'?'active':''}" onclick="S.reqTab='approved';render()">Aprobadas (${approved.length})</button>
+        <button class="tab ${S.reqTab==='rejected'?'active':''}" onclick="S.reqTab='rejected';render()">Rechazadas (${rejected.length})</button>
+      </div>
+      ${list.length ? list.map(r => {
+        const ag = S.agents.find(a => a.id == r.agentId);
+        return `<div class="req-card">
+          <div class="req-head">
+            <div style="display:flex;align-items:center;gap:8px">
+              ${ag ? `<div class="avatar" style="background:${ag.color};color:${ag.text};width:26px;height:26px;font-size:10px">${ag.initials}</div>` : ""}
+              <span class="req-name">${r.agentName}</span>
+            </div>
+            <span class="badge badge-${r.status}">${statusLabel[r.status]||r.status}</span>
+          </div>
+          <div class="req-dates">${r.dates.map(fmtDate).join(" · ")} · ${r.dates.length} día${r.dates.length!==1?"s":""}</div>
+          <div class="req-reason">"${r.reason}"</div>
+          ${r.status === "pending" ? `<div class="req-actions">
+            <button class="btn-sm btn-approve" onclick="updateStatus(${r.id},'approved')">Aprobar</button>
+            <button class="btn-sm btn-reject" onclick="updateStatus(${r.id},'rejected')">Rechazar</button>
+          </div>` : ""}
+        </div>`;
+      }).join("") : `<div class="empty-state">Sin solicitudes en esta categoría</div>`}
+    </div>
+
+    <div class="card">
+      <div class="card-label">Resumen del equipo</div>
+      ${S.agents.map(a => {
+        const days = S.requests.filter(r => r.agentId == a.id && r.status === "approved")
+          .reduce((s,r) => s + r.dates.length, 0);
+        return `<div class="agent-row">
+          <div class="avatar" style="background:${a.color};color:${a.text}">${a.initials}</div>
+          <div style="flex:1">
+            <div class="agent-name">${a.name}</div>
+            <div class="agent-sub">${days} días aprobados</div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
+// ── ACTIONS ────────────────────────────────────────────────
+window.toggleDate = ds => {
+  const i = S.selectedDates.indexOf(ds);
+  if (i >= 0) S.selectedDates.splice(i, 1);
+  else S.selectedDates.push(ds);
+  S.selectedDates.sort();
+  render();
+};
+window.removeDate = ds => { S.selectedDates = S.selectedDates.filter(x => x !== ds); render(); };
+window.prevMonth  = () => { S.month === 0 ? (S.month=11,S.year--) : S.month--; render(); };
+window.nextMonth  = () => { S.month === 11 ? (S.month=0,S.year++) : S.month++; render(); };
+
+window.submitRequest = async () => {
+  if (!S.selectedDates.length || !S.reason.trim()) return;
+  const ag = S.agents.find(a => a.id == S.currentAgent);
+  const btn = document.getElementById("submit-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "Enviando…"; }
+
+  try {
+    if (CONFIG.API_URL !== "PEGA_AQUI_LA_URL_DEL_WEB_APP") {
+      await apiPost({ action:"submitRequest", agentId:S.currentAgent, agentName:ag?.name, dates:S.selectedDates, reason:S.reason });
+      await loadRequests();
+    } else {
+      // demo mode
+      S.requests.push({ id:Date.now(), agentId:S.currentAgent, agentName:ag?.name,
+        dates:[...S.selectedDates], reason:S.reason, status:"pending", timestamp:"" });
+    }
+    S.selectedDates = []; S.reason = "";
+    showToast("Solicitud enviada al gerente");
+    render();
+  } catch(e) { showToast("Error al enviar. Intenta de nuevo."); render(); }
+};
+
+window.updateStatus = async (id, status) => {
+  try {
+    if (CONFIG.API_URL !== "PEGA_AQUI_LA_URL_DEL_WEB_APP") {
+      await apiPost({ action:"updateStatus", requestId:id, status });
+      const res = await api({ action:"getDays" });
+      S.approvedDays = res.approvedDays || {};
+      await loadRequests();
+    } else {
+      // demo
+      const r = S.requests.find(x => x.id == id);
+      if (r) {
+        r.status = status;
+        S.approvedDays = {};
+        S.requests.filter(x => x.status === "approved").forEach(x =>
+          x.dates.forEach(d => { if(!S.approvedDays[d]) S.approvedDays[d]=[]; S.approvedDays[d].push(x.agentId); })
+        );
+      }
+    }
+    showToast(status === "approved" ? "✓ Solicitud aprobada" : "Solicitud rechazada");
+    render();
+  } catch(e) { showToast("Error. Intenta de nuevo."); }
+};
+
+// ── HELPERS ────────────────────────────────────────────────
+function fmtDate(ds) {
+  const [y,m,d] = ds.split("-");
+  return `${d}/${m}/${String(y).slice(2)}`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+// ── BOOT ───────────────────────────────────────────────────
+document.getElementById("agent-select").style.display = "";
+init();
+</script>
+</body>
+</html>
